@@ -72,7 +72,7 @@ class VartalapTUI(App):
     /* Sidebar Collection Box */
     #sidebar-box {
         width: 36;
-        border: rounded #8b5cf6;
+        border: round #8b5cf6;
         background: #111726;
         margin-right: 1;
         padding: 0 1;
@@ -98,7 +98,7 @@ class VartalapTUI(App):
 
     #request-box {
         height: 13;
-        border: rounded #8b5cf6;
+        border: round #8b5cf6;
         background: #111726;
         margin-bottom: 1;
         padding: 0 1;
@@ -106,7 +106,7 @@ class VartalapTUI(App):
 
     #response-box {
         height: 1fr;
-        border: rounded #8b5cf6;
+        border: round #8b5cf6;
         background: #111726;
         padding: 0 1;
     }
