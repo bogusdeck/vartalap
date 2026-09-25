@@ -3,17 +3,24 @@ import argparse
 import asyncio
 from vartalap.settings import get_settings
 from vartalap.agent_loop import run_agent
+from vartalap.split_launcher import launch_split_session
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Vartalap Interactive Terminal Agent CLI")
-    parser.add_argument("--user", "-u", type=str, required=True, help="Target Reddit username")
+    parser = argparse.ArgumentParser(description="Vartalap Interactive Terminal Agent CLI & Split Launcher")
+    parser.add_argument("--user", "-u", type=str, default=None, help="Target Reddit username (if omitted, launches split TUI dashboard)")
     parser.add_argument("--instruction", "-i", type=str, default="Reply matching tone, keep casual", help="High-level instruction for the agent")
     parser.add_argument("--mode", "-m", type=str, choices=["fast_browser", "direct_api", "terminal_browser", "browser"], default=None, help="Execution speed mode")
+    parser.add_argument("--split", action="store_true", help="Launch TUI + terminal-browser split panel session")
     parser.add_argument("--headed", action="store_true", help="Launch visible browser window on right side of screen")
     parser.add_argument("--live", action="store_true", help="Perform real sends (dry_run=False)")
 
     args = parser.parse_args()
+
+    # If no user specified or --split flag passed, launch TUI + terminal-browser split session
+    if args.user is None or args.split:
+        launch_split_session()
+        return
 
     settings = get_settings()
     exec_mode = args.mode or settings.agent.mode
