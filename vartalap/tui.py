@@ -1,79 +1,66 @@
+import json
 import asyncio
-from datetime import datetime
 from typing import Optional, List, Dict, Any
 
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical, ScrollableContainer
 from textual.widgets import (
     Header, Footer, Button, Input, Static, RichLog, Label, Switch,
-    DataTable, Select, TabbedContent, TabPane, ProgressBar, Digits
+    DataTable, Select, TabbedContent, TabPane, OptionList
 )
+from textual.widgets.option_list import Option
 from textual.binding import Binding
-from textual.message import Message
 
 from vartalap.settings import get_settings, reload_settings
 from vartalap.agent_loop import run_agent
 from vartalap.logger import get_recent_logs, get_messages_sent_today_count
-from vartalap.scheduler import start_scheduler, stop_scheduler
-
-
-class MetricCard(Static):
-    """Reusable metric card component for top stats bar."""
-    
-    def __init__(self, title: str, value: str, subtext: str = "", id: str = None):
-        super().__init__(id=id)
-        self.card_title = title
-        self.card_value = value
-        self.card_subtext = subtext
-
-    def compose(self) -> ComposeResult:
-        yield Label(self.card_title, classes="metric-title")
-        yield Label(self.card_value, classes="metric-value", id=f"{self.id}-val")
-        if self.card_subtext:
-            yield Label(self.card_subtext, classes="metric-subtext", id=f"{self.id}-sub")
-
-    def update_value(self, value: str, subtext: str = None):
-        self.query_one(f"#{self.id}-val", Label).update(value)
-        if subtext and self.query(f"#{self.id}-sub"):
-            self.query_one(f"#{self.id}-sub", Label).update(subtext)
 
 
 class VartalapTUI(App):
-    """Production-grade Textual Terminal Dashboard for Vartalap Autonomous Reddit DM Agent."""
+    """Production Textual TUI with Posting aesthetic for Vartalap Autonomous Reddit DM Agent."""
 
-    TITLE = "VARTALAP CONTROL CENTER"
-    SUB_TITLE = "Autonomous Reddit DM Agent v0.1.0"
+    TITLE = "Vartalap"
+    SUB_TITLE = "0.1.0"
 
     CSS = """
     Screen {
-        background: $surface-darken-1;
+        background: #0b0f19;
+        color: #e2e8f0;
     }
-    
-    /* Top Metrics Bar */
-    #metrics-bar {
-        height: 6;
-        margin: 0 1 1 1;
+
+    /* Top Brand & Request Bar */
+    #top-bar {
+        height: 3;
+        margin: 1 1 0 1;
     }
-    MetricCard {
-        background: $panel;
-        border: solid $primary-muted;
-        padding: 0 1;
-        margin-right: 1;
+
+    #brand-title {
+        color: #10b981;
+        text-style: bold;
+        width: 16;
+        content-align: left middle;
+    }
+
+    #target-input {
         width: 1fr;
-        height: 100%;
+        background: #171e2e;
+        color: #38bdf8;
+        border: none;
+        height: 3;
     }
-    .metric-title {
+
+    #btn-send {
+        background: #8b5cf6;
+        color: #ffffff;
         text-style: bold;
-        color: $text-muted;
-        margin-top: 0;
+        border: none;
+        width: 12;
+        height: 3;
+        margin-left: 1;
     }
-    .metric-value {
-        text-style: bold;
-        color: $accent;
-        font-size: 1;
-    }
-    .metric-subtext {
-        color: $text-muted;
+
+    #btn-send:hover {
+        background: #a855f7;
     }
 
     /* Main Workspace Layout */
@@ -82,48 +69,72 @@ class VartalapTUI(App):
         margin: 0 1;
     }
 
-    /* Left Sidebar Panel */
-    #sidebar {
-        width: 44;
-        background: $panel;
-        border: solid $primary;
-        padding: 1;
+    /* Sidebar Collection Box */
+    #sidebar-box {
+        width: 36;
+        border: rounded #8b5cf6;
+        background: #111726;
         margin-right: 1;
-    }
-    .section-header {
-        text-style: bold;
-        color: $primary-lighten-2;
-        background: $primary-darken-3;
         padding: 0 1;
-        margin-bottom: 1;
     }
-    .field-label {
+
+    .box-header {
+        color: #c084fc;
         text-style: bold;
-        color: $text;
-        margin-top: 1;
+        padding: 0 1;
     }
-    Input {
+
+    OptionList {
+        background: transparent;
+        border: none;
+        height: 1fr;
+    }
+
+    /* Right Side Panels */
+    #right-panel {
+        width: 1fr;
+        height: 100%;
+    }
+
+    #request-box {
+        height: 13;
+        border: rounded #8b5cf6;
+        background: #111726;
         margin-bottom: 1;
-        border: tall $secondary-muted;
+        padding: 0 1;
     }
-    Select {
-        margin-bottom: 1;
+
+    #response-box {
+        height: 1fr;
+        border: rounded #8b5cf6;
+        background: #111726;
+        padding: 0 1;
     }
-    .toggle-row {
+
+    .field-row {
         height: 3;
-        margin-bottom: 1;
-        align: space-between middle;
+        margin-bottom: 0;
+        align: left middle;
     }
-    Button {
-        width: 100%;
-        margin-bottom: 1;
+
+    .field-label {
+        width: 14;
+        color: #94a3b8;
         text-style: bold;
     }
 
-    /* Right Main Content Area */
-    #content-area {
+    .field-input {
         width: 1fr;
-        height: 100%;
+        background: #171e2e;
+        color: #f1f5f9;
+        border: none;
+        height: 3;
+    }
+
+    Select {
+        width: 1fr;
+        background: #171e2e;
+        border: none;
     }
 
     TabbedContent {
@@ -136,129 +147,111 @@ class VartalapTUI(App):
 
     RichLog {
         height: 100%;
-        border: solid $secondary;
-        background: $boost;
+        background: #0b0f19;
+        color: #38bdf8;
+        border: none;
         padding: 1;
     }
 
     DataTable {
         height: 100%;
-        border: solid $secondary;
+        background: #0b0f19;
+        border: none;
+    }
+
+    .status-pill {
+        background: #0d9488;
+        color: #ffffff;
+        text-style: bold;
+        padding: 0 1;
+        margin-left: 1;
     }
     """
 
     BINDINGS = [
-        Binding("q", "quit", "Quit", show=True),
-        Binding("r", "run_shortcut", "Run Agent", show=True),
-        Binding("m", "cycle_mode", "Toggle Mode", show=True),
-        Binding("d", "toggle_dry_run", "Toggle DryRun", show=True),
-        Binding("l", "refresh_logs", "Refresh Logs", show=True),
+        Binding("ctrl+j", "trigger_send", "Send", show=True),
+        Binding("ctrl+m", "cycle_mode", "Method", show=True),
+        Binding("ctrl+d", "toggle_dry_run", "DryRun", show=True),
+        Binding("ctrl+l", "refresh_logs", "Logs", show=True),
+        Binding("ctrl+q", "quit", "Quit", show=True),
     ]
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
-
-        # Top Stat Metrics Bar
-        with Horizontal(id="metrics-bar"):
-            yield MetricCard("SYSTEM MODE", "fast_browser", "3x Speed Enabled", id="card-mode")
-            yield MetricCard("LLM BACKEND", "cli", "antigravity", id="card-backend")
-            yield MetricCard("DAILY MESSAGES", "0 / 20", "Safety Limit Active", id="card-daily")
-            yield MetricCard("SCHEDULER", "INTERVAL 10M", "🟢 Active", id="card-scheduler")
+        # Top Bar
+        with Horizontal(id="top-bar"):
+            yield Label("Vartalap [dim]0.1.0[/dim]", id="brand-title")
+            yield Input(placeholder="u/username (e.g. elonmusk)", id="target-input", value="elonmusk")
+            yield Button("Send ▶", id="btn-send")
 
         # Main Workspace Split
         with Horizontal(id="main-split"):
-            # Left Column Controls
-            with Vertical(id="sidebar"):
-                yield Label("⚡ AGENT CONTROL PANEL", classes="section-header")
-
-                yield Label("Target User:", classes="field-label")
-                yield Input(placeholder="e.g. elonmusk", id="in-user", value="elonmusk")
-
-                yield Label("Instruction Prompt:", classes="field-label")
-                yield Input(placeholder="High level instruction...", id="in-instruction", value="Reply matching tone, keep casual")
-
-                yield Label("Execution Speed Mode:", classes="field-label")
-                yield Select(
-                    options=[
-                        ("⚡ Fast Browser (Resource Blocked)", "fast_browser"),
-                        ("🚀 Direct HTTP API (<300ms)", "direct_api"),
-                        ("🌐 Full Browser (Headed / Visual)", "browser"),
-                    ],
-                    value="fast_browser",
-                    id="sel-mode"
+            # Left Sidebar: Watchlist / Target Threads
+            with Vertical(id="sidebar-box"):
+                yield Label("Target Watchlist", classes="box-header")
+                yield OptionList(
+                    Option("🟢 u/elonmusk [dim](latest)[/dim]", id="opt-elon"),
+                    Option("💬 u/samaltman", id="opt-sam"),
+                    Option("💬 u/lexfridman", id="opt-lex"),
+                    Option("💬 u/sundarpichai", id="opt-sundar"),
+                    id="opt-watchlist"
                 )
+                yield Label("Status: [bold green]ONLINE[/bold green]", classes="box-header")
 
-                with Horizontal(classes="toggle-row"):
-                    yield Label("Dry Run (Simulate Sends):")
-                    yield Switch(value=True, id="sw-dryrun")
+            # Right Side Panel: Request Configuration & Response Logs
+            with Vertical(id="right-panel"):
+                # Top Request / Agent Setup Box
+                with Vertical(id="request-box"):
+                    yield Label("Agent Setup", classes="box-header")
+                    
+                    with Horizontal(classes="field-row"):
+                        yield Label("Instruction:", classes="field-label")
+                        yield Input(placeholder="Prompt for LLM...", id="in-instruction", value="Reply matching tone, keep casual", classes="field-input")
 
-                yield Button("🚀 RUN AGENT NOW", id="btn-run-agent", variant="primary")
-                yield Button("🔄 HOT RELOAD CONFIG", id="btn-reload-config", variant="secondary")
-                yield Button("📊 FETCH RECENT LOGS", id="btn-fetch-logs", variant="default")
+                    with Horizontal(classes="field-row"):
+                        yield Label("Exec Mode:", classes="field-label")
+                        yield Select(
+                            options=[
+                                ("⚡ Fast Browser (Resource Blocked)", "fast_browser"),
+                                ("🚀 Direct HTTP API (<300ms)", "direct_api"),
+                                ("🌐 Full Visual Browser", "browser"),
+                            ],
+                            value="fast_browser",
+                            id="sel-mode"
+                        )
 
-            # Right Column Tabbed Display
-            with Vertical(id="content-area"):
-                with TabbedContent(initial="tab-terminal"):
-                    with TabPane("🖥️ Terminal Execution Stream", id="tab-terminal"):
-                        yield RichLog(id="rich-log", wrap=True, highlight=True, markup=True)
+                    with Horizontal(classes="field-row"):
+                        yield Label("Dry Run:", classes="field-label")
+                        yield Switch(value=True, id="sw-dryrun")
 
-                    with TabPane("📜 Audit Trail Database", id="tab-audit"):
-                        yield DataTable(id="dt-audit")
+                # Bottom Response / Execution Stream Box
+                with Vertical(id="response-box"):
+                    with Horizontal():
+                        yield Label("Execution Response", classes="box-header")
+                        yield Label("200 OK", classes="status-pill", id="pill-status")
 
-                    with TabPane("⚙️ Active Configuration", id="tab-config"):
-                        yield RichLog(id="config-log", wrap=True, highlight=True, markup=True)
+                    with TabbedContent(initial="tab-log"):
+                        with TabPane("Console Output", id="tab-log"):
+                            yield RichLog(id="rich-log", wrap=True, highlight=True, markup=True)
+
+                        with TabPane("Audit Database", id="tab-audit"):
+                            yield DataTable(id="dt-audit")
+
+                        with TabPane("Raw Response JSON", id="tab-json"):
+                            yield RichLog(id="json-log", wrap=True, highlight=True, markup=True)
 
         yield Footer()
 
     def on_mount(self) -> None:
-        """Initialize UI data tables, metrics, and startup notifications."""
-        self.update_metrics_and_config()
-
-        log_widget = self.query_one("#rich-log", RichLog)
-        log_widget.write("[bold green]======================================================[/bold green]")
-        log_widget.write("[bold green] 🤖 VARTALAP AUTONOMOUS AGENT CONTROL CENTER ONLINE [/bold green]")
-        log_widget.write("[bold green]======================================================[/bold green]")
-        log_widget.write("[dim]Press R to trigger run, M to cycle mode, D to toggle dry run, Q to quit.[/dim]\n")
-
-        # Setup Audit Data Table
         table = self.query_one("#dt-audit", DataTable)
-        table.add_columns("Timestamp (UTC)", "User", "Action", "Mode", "DryRun", "Details")
+        table.add_columns("Timestamp", "User", "Action", "DryRun", "Details")
+
+        log = self.query_one("#rich-log", RichLog)
+        log.write("[bold green]✓ Vartalap Engine Initialized (Posting Theme)[/bold green]")
+        log.write("[dim]Press Ctrl+J or click Send to execute agent run.[/dim]\n")
         self.load_audit_logs()
 
-    def update_metrics_and_config(self) -> None:
-        """Refresh top metric cards and config display."""
-        settings = get_settings()
-        sent_today = get_messages_sent_today_count()
-        max_daily = settings.agent.max_messages_per_day
-
-        # Update Top Cards
-        self.query_one("#card-mode", MetricCard).update_value(
-            settings.agent.mode,
-            "Resource Blocked" if settings.agent.mode == "fast_browser" else ("Direct HTTP" if settings.agent.mode == "direct_api" else "Full Visual")
-        )
-        self.query_one("#card-backend", MetricCard).update_value(
-            settings.llm.backend,
-            f"Command: {settings.llm.cli.command[:20]}..." if settings.llm.backend == "cli" else settings.llm.api.provider
-        )
-        self.query_one("#card-daily", MetricCard).update_value(
-            f"{sent_today} / {max_daily}",
-            "Limit Normal" if sent_today < max_daily else "[bold red]CAP REACHED[/bold red]"
-        )
-
-        # Update Config Display Tab
-        cfg_log = self.query_one("#config-log", RichLog)
-        cfg_log.clear()
-        cfg_log.write("[bold cyan]ACTIVE CONFIGURATION SETTINGS[/bold cyan]\n")
-        cfg_log.write(f"[bold]LLM Backend:[/bold] {settings.llm.backend}")
-        cfg_log.write(f"[bold]Agent Mode:[/bold] {settings.agent.mode}")
-        cfg_log.write(f"[bold]Storage State:[/bold] {settings.reddit.storage_state_path}")
-        cfg_log.write(f"[bold]Inbox URL:[/bold] {settings.reddit.inbox_url}")
-        cfg_log.write(f"[bold]Max Steps / Conversation:[/bold] {settings.agent.max_steps_per_conversation}")
-        cfg_log.write(f"[bold]Max Daily Messages:[/bold] {settings.agent.max_messages_per_day}")
-        cfg_log.write(f"[bold]Polling Interval:[/bold] {settings.scheduler.polling_interval_minutes} minutes")
-
-    def action_run_shortcut(self) -> None:
-        self.trigger_agent_run()
+    def action_trigger_send(self) -> None:
+        self.run_agent_execution()
 
     def action_cycle_mode(self) -> None:
         select = self.query_one("#sel-mode", Select)
@@ -266,56 +259,56 @@ class VartalapTUI(App):
         curr_idx = modes.index(select.value) if select.value in modes else 0
         next_mode = modes[(curr_idx + 1) % len(modes)]
         select.value = next_mode
-        self.notify(f"Execution mode set to: {next_mode}", title="Mode Change")
+        self.notify(f"Method set to {next_mode}", title="Mode Updated")
 
     def action_toggle_dry_run(self) -> None:
         sw = self.query_one("#sw-dryrun", Switch)
         sw.value = not sw.value
-        state_str = "ENABLED (Simulated)" if sw.value else "DISABLED (REAL SEND)"
-        self.notify(f"Dry Run {state_str}", title="Safety Toggle")
+        state = "ENABLED (Simulated)" if sw.value else "DISABLED (REAL SEND)"
+        self.notify(f"Dry Run {state}", title="Safety Toggle")
 
     def action_refresh_logs(self) -> None:
         self.load_audit_logs()
-        self.notify("Audit logs refreshed from SQLite database", title="Logs Updated")
+        self.notify("Audit logs reloaded", title="Logs Refreshed")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "btn-run-agent":
-            self.trigger_agent_run()
-        elif event.button.id == "btn-reload-config":
-            reload_settings()
-            self.update_metrics_and_config()
-            self.notify("Configuration reloaded from config.yaml and .env", title="Hot Reload")
-        elif event.button.id == "btn-fetch-logs":
-            self.load_audit_logs()
-            self.notify("Fetched recent audit logs", title="Audit Trail")
+        if event.button.id == "btn-send":
+            self.run_agent_execution()
 
-    def on_select_changed(self, event: Select.Changed) -> None:
-        if event.select.id == "sel-mode":
-            settings = get_settings()
-            settings.agent.mode = str(event.value)
-            self.update_metrics_and_config()
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+        opt_id = event.option_id
+        user_map = {
+            "opt-elon": "elonmusk",
+            "opt-sam": "samaltman",
+            "opt-lex": "lexfridman",
+            "opt-sundar": "sundarpichai"
+        }
+        if opt_id in user_map:
+            self.query_one("#target-input", Input).value = user_map[opt_id]
 
-    def trigger_agent_run(self) -> None:
-        username = self.query_one("#in-user", Input).value.strip()
+    def run_agent_execution(self) -> None:
+        username = self.query_one("#target-input", Input).value.strip().lstrip("u/").lstrip("/u/")
         instruction = self.query_one("#in-instruction", Input).value.strip()
         mode = str(self.query_one("#sel-mode", Select).value)
         dry_run = self.query_one("#sw-dryrun", Switch).value
 
-        log_widget = self.query_one("#rich-log", RichLog)
+        log = self.query_one("#rich-log", RichLog)
 
         if not username:
-            self.notify("Target username cannot be empty!", title="Error", severity="error")
+            self.notify("Target username cannot be empty!", title="Validation Error", severity="error")
             return
 
-        log_widget.write(f"\n[bold yellow]------------------------------------------------------[/bold yellow]")
-        log_widget.write(f"[bold yellow]▶ STARTING AGENT RUN | User: u/{username} | Mode: {mode}[/bold yellow]")
-        log_widget.write(f"[dim]Instruction: {instruction} | Dry Run: {dry_run}[/dim]\n")
+        log.write(f"\n[bold magenta]PUT /messages/{username}[/bold magenta]")
+        log.write(f"[dim]Executing run (mode={mode}, dry_run={dry_run})...[/dim]")
 
-        self.notify(f"Running agent for u/{username}...", title="Agent Execution Started")
-        self.run_worker(self._async_run_agent(username, instruction, dry_run, mode))
+        self.notify(f"Sending agent to u/{username}...", title="Request Sent")
+        self.run_worker(self._async_agent_run(username, instruction, dry_run, mode))
 
-    async def _async_run_agent(self, username: str, instruction: str, dry_run: bool, mode: str) -> None:
-        log_widget = self.query_one("#rich-log", RichLog)
+    async def _async_agent_run(self, username: str, instruction: str, dry_run: bool, mode: str) -> None:
+        log = self.query_one("#rich-log", RichLog)
+        json_log = self.query_one("#json-log", RichLog)
+        pill = self.query_one("#pill-status", Label)
+
         try:
             result = await run_agent(
                 username=username,
@@ -325,36 +318,38 @@ class VartalapTUI(App):
             )
             status = result.get("status")
             final_action = result.get("final_action", "N/A")
-            reasoning = result.get("reasoning", "")
 
             if status == "completed":
-                log_widget.write(f"[bold green]✔ RUN SUCCESSFUL![/bold green] Final Action: [bold cyan]{final_action}[/bold cyan]")
-                if reasoning:
-                    log_widget.write(f"[italic]LLM Reasoning: {reasoning}[/italic]")
-                self.notify(f"Run completed for u/{username} ({final_action})", title="Run Success")
+                pill.update("200 OK")
+                pill.styles.background = "#0d9488"
+                log.write(f"[bold green]200 OK[/bold green] - Final Action: [cyan]{final_action}[/cyan]")
+                if result.get("reasoning"):
+                    log.write(f"[italic]LLM Reasoning: {result.get('reasoning')}[/italic]")
             else:
-                log_widget.write(f"[bold red]✖ RUN FAILED / STATUS: {status}[/bold red]")
-                log_widget.write(f"[dim]Details: {result}[/dim]")
-                self.notify(f"Run ended with status: {status}", title="Run Warning", severity="warning")
+                pill.update("400 FAIL")
+                pill.styles.background = "#e11d48"
+                log.write(f"[bold red]Execution status: {status}[/bold red]")
+
+            json_log.clear()
+            json_log.write(json.dumps(result, indent=2))
 
         except Exception as e:
-            log_widget.write(f"[bold red]CRITICAL ERROR during execution: {e}[/bold red]")
-            self.notify(f"Execution Error: {e}", title="Run Failure", severity="error")
+            pill.update("500 ERR")
+            pill.styles.background = "#e11d48"
+            log.write(f"[bold red]Exception: {e}[/bold red]")
 
-        self.update_metrics_and_config()
         self.load_audit_logs()
 
     def load_audit_logs(self) -> None:
         table = self.query_one("#dt-audit", DataTable)
         table.clear()
-        logs = get_recent_logs(limit=50)
+        logs = get_recent_logs(limit=40)
         for row in logs:
             ts = row.get("timestamp", "")[:19].replace("T", " ")
             user = row.get("thread_username", "")
             action = row.get("action", "")
-            details = row.get("details", "")
             dry_run = "TRUE" if row.get("dry_run") else "FALSE"
-            table.add_row(ts, user, action, "N/A", dry_run, details[:60])
+            table.add_row(ts, user, action, dry_run, row.get("details", "")[:50])
 
 
 def main():
