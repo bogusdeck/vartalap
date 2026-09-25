@@ -6,7 +6,7 @@ from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical, ScrollableContainer
 from textual.widgets import (
     Header, Footer, Button, Input, Static, RichLog, Label, Switch,
-    DataTable, Select, TabbedContent, TabPane
+    DataTable, Select, TabbedContent, TabPane, TextArea
 )
 from textual.binding import Binding
 
@@ -16,7 +16,7 @@ from vartalap.logger import get_recent_logs, get_messages_sent_today_count
 
 
 class VartalapTUI(App):
-    """Clean 2-Section Textual TUI (Agent Setup on Left | Execution Response on Right)."""
+    """Clean 2-Section Textual TUI with TextArea wrapping and proper Select dropdowns."""
 
     TITLE = "Vartalap"
     SUB_TITLE = "0.1.0"
@@ -82,9 +82,17 @@ class VartalapTUI(App):
         margin-bottom: 1;
     }
 
+    TextArea {
+        height: 6;
+        background: #171e2e;
+        color: #38bdf8;
+        border: none;
+        margin-bottom: 1;
+    }
+
     Select {
         background: #171e2e;
-        border: none;
+        color: #38bdf8;
         margin-bottom: 1;
     }
 
@@ -155,6 +163,21 @@ class VartalapTUI(App):
         Binding("ctrl+q", "quit", "Quit", show=True),
     ]
 
+    PLATFORM_OPTIONS = [
+        ("Reddit (Supported)", "reddit"),
+        ("Telegram (Upcoming)", "telegram"),
+        ("WhatsApp (Upcoming)", "whatsapp"),
+        ("Twitter / X (Upcoming)", "twitter"),
+        ("Slack (Upcoming)", "slack"),
+        ("Discord (Upcoming)", "discord"),
+    ]
+
+    MODE_OPTIONS = [
+        ("Fast Browser (Resource Blocked)", "fast_browser"),
+        ("Direct HTTP API (<300ms)", "direct_api"),
+        ("Full Visual Browser", "browser"),
+    ]
+
     def compose(self) -> ComposeResult:
         # Top Bar
         with Horizontal(id="top-bar"):
@@ -172,29 +195,24 @@ class VartalapTUI(App):
 
                 yield Label("Platform:", classes="field-label")
                 yield Select(
-                    options=[
-                        ("🔴 Reddit (Supported)", "reddit"),
-                        ("✈️ Telegram (Upcoming)", "telegram"),
-                        ("💬 WhatsApp (Upcoming)", "whatsapp"),
-                        ("🐦 Twitter / X (Upcoming)", "twitter"),
-                        ("💼 Slack (Upcoming)", "slack"),
-                        ("👾 Discord (Upcoming)", "discord"),
-                    ],
+                    options=self.PLATFORM_OPTIONS,
                     value="reddit",
+                    allow_blank=False,
                     id="sel-platform"
                 )
 
-                yield Label("Instruction Prompt:", classes="field-label")
-                yield Input(placeholder="Instruction for LLM...", id="in-instruction", value="Reply matching tone, keep casual")
+                yield Label("Instruction Prompt (Wrapped Text):", classes="field-label")
+                yield TextArea(
+                    "Reply matching tone, keep casual",
+                    soft_wrap=True,
+                    id="in-instruction"
+                )
 
                 yield Label("Exec Mode:", classes="field-label")
                 yield Select(
-                    options=[
-                        ("⚡ Fast Browser (Resource Blocked)", "fast_browser"),
-                        ("🚀 Direct HTTP API (<300ms)", "direct_api"),
-                        ("🌐 Full Visual Browser", "browser"),
-                    ],
+                    options=self.MODE_OPTIONS,
                     value="fast_browser",
+                    allow_blank=False,
                     id="sel-mode"
                 )
 
@@ -259,7 +277,7 @@ class VartalapTUI(App):
     def run_agent_execution(self) -> None:
         username = self.query_one("#target-input", Input).value.strip().lstrip("u/").lstrip("/u/")
         platform = str(self.query_one("#sel-platform", Select).value)
-        instruction = self.query_one("#in-instruction", Input).value.strip()
+        instruction = self.query_one("#in-instruction", TextArea).text.strip()
         mode = str(self.query_one("#sel-mode", Select).value)
         dry_run = self.query_one("#sw-dryrun", Switch).value
 
