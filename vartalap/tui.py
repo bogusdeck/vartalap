@@ -91,7 +91,7 @@ class VartalapTUI(App):
     .switch-row {
         height: 3;
         margin-bottom: 1;
-        align: space-between middle;
+        align: left middle;
     }
 
     #btn-send {
