@@ -94,3 +94,10 @@ async def test_fast_api_client(tmp_path):
     assert reply_res["success"] is True
     assert reply_res["dry_run"] is True
 
+
+def test_tui_css_compilation():
+    from vartalap.tui import VartalapTUI
+    app_inst = VartalapTUI()
+    assert app_inst.CSS is not None
+    assert "text-style: bold;" in app_inst.CSS
+

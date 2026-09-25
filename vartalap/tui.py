@@ -26,7 +26,7 @@ class VartalapTUI(App):
         padding: 1;
     }
     .panel-title {
-        font-weight: bold;
+        text-style: bold;
         color: $accent;
         margin-bottom: 1;
     }
