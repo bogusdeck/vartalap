@@ -9,7 +9,7 @@ def main():
     parser = argparse.ArgumentParser(description="Vartalap Interactive Terminal Agent CLI")
     parser.add_argument("--user", "-u", type=str, required=True, help="Target Reddit username")
     parser.add_argument("--instruction", "-i", type=str, default="Reply matching tone, keep casual", help="High-level instruction for the agent")
-    parser.add_argument("--mode", "-m", type=str, choices=["fast_browser", "direct_api", "browser"], default=None, help="Execution speed mode")
+    parser.add_argument("--mode", "-m", type=str, choices=["fast_browser", "direct_api", "terminal_browser", "browser"], default=None, help="Execution speed mode")
     parser.add_argument("--headed", action="store_true", help="Launch visible browser window on right side of screen")
     parser.add_argument("--live", action="store_true", help="Perform real sends (dry_run=False)")
 
