@@ -175,6 +175,7 @@ class VartalapTUI(App):
     MODE_OPTIONS = [
         ("Fast Browser (Resource Blocked)", "fast_browser"),
         ("Direct HTTP API (<300ms)", "direct_api"),
+        ("Terminal Browser (In-Terminal)", "terminal_browser"),
         ("Full Visual Browser", "browser"),
     ]
 

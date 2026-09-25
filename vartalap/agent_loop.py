@@ -49,6 +49,25 @@ async def run_agent(
 
     print(f"[AGENT] Starting conversation run for u/{username} (mode={exec_mode}, max_steps={max_steps}, dry_run={is_dry_run})")
 
+    # --- TERMINAL BROWSER MODE (zenbu-labs/terminal-browser) ---
+    if exec_mode == "terminal_browser":
+        try:
+            from vartalap.terminal_browser import run_terminal_browser_agent
+            target_url = f"{settings.reddit.inbox_url.rstrip('/')}/messages/{username}"
+            tb_result = await run_terminal_browser_agent(url=target_url)
+            return {
+                "username": username,
+                "status": "completed" if tb_result.get("success") else "failed",
+                "mode": "terminal_browser",
+                "final_action": "open_terminal_browser",
+                "dry_run": is_dry_run,
+                "execution_result": tb_result
+            }
+        except Exception as e:
+            err_msg = f"Terminal browser mode failed: {e}"
+            print(f"[AGENT] {err_msg}")
+            return {"username": username, "status": "error", "error": err_msg}
+
     # --- DIRECT HTTP REST API MODE (<300ms) ---
     if exec_mode == "direct_api":
         try:
