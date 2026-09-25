@@ -43,7 +43,7 @@ class VartalapTUI(App):
     RichLog {
         height: 1fr;
         border: solid $secondary;
-        background: $surface-dark;
+        background: $boost;
     }
     """
 
