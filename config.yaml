@@ -1,0 +1,32 @@
+# Vartalap Configuration File
+llm:
+  backend: cli              # Options: cli | ollama_cloud | api
+  cli:
+    command: "antigravity -p {prompt}"
+    timeout_seconds: 60
+  ollama_cloud:
+    endpoint: "https://ollama.example/api"
+    model: "llama3.1-cloud"
+    api_key: "${OLLAMA_API_KEY}"
+  api:
+    provider: "openai"      # Options: openai | anthropic
+    model: "gpt-4o-mini"
+    api_key: "${LLM_API_KEY}"
+
+reddit:
+  storage_state_path: "./storage_state.json"
+  inbox_url: "https://www.reddit.com/message/messages"
+  chat_url: "https://chat.reddit.com"
+
+agent:
+  mode: fast_browser          # Options: fast_browser | direct_api | browser
+  watchlist: []              # empty = handle any unread DM
+  max_steps_per_conversation: 6
+  max_messages_per_day: 20
+  dry_run: true
+
+scheduler:
+  polling_interval_minutes: 10
+
+security:
+  api_key: "${VARTALAP_API_KEY}"

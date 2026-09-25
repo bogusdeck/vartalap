@@ -1,0 +1,43 @@
+# Environment & Secrets
+.env
+storage_state.json
+*.db
+logs/*.db
+logs/screenshots/
+logs/vartalap.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv
+venv/
+ENV/
+
+# Testing & IDEs
+.pytest_cache/
+.coverage
+htmlcov/
+.vscode/
+.idea/
+*.swp

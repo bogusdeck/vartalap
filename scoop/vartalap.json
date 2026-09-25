@@ -1,0 +1,26 @@
+{
+    "version": "0.1.0",
+    "description": "Autonomous Reddit DM agent service",
+    "homepage": "https://github.com/bogusdeck/vartalap",
+    "license": "MIT",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/bogusdeck/vartalap/releases/download/v0.1.0/vartalap-win-x64.exe",
+            "hash": "REPLACE_WITH_RELEASE_SHA256"
+        }
+    },
+    "bin": [
+        [
+            "vartalap-win-x64.exe",
+            "vartalap"
+        ]
+    ],
+    "checkver": "github",
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/bogusdeck/vartalap/releases/download/v$version/vartalap-win-x64.exe"
+            }
+        }
+    }
+}
