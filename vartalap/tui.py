@@ -12,7 +12,7 @@ from textual.binding import Binding
 
 from vartalap.settings import get_settings, reload_settings
 from vartalap.agent_loop import run_agent
-from vartalap.logger import get_recent_logs, get_messages_sent_today_count
+from vartalap.logger import get_recent_logs, get_recent_llm_logs, get_messages_sent_today_count
 
 
 class VartalapTUI(App):
@@ -297,18 +297,48 @@ class VartalapTUI(App):
         self.notify(f"Executing agent for u/{username}...", title="Execution Started")
         self.run_worker(self._async_agent_run(username, instruction, dry_run, mode))
 
+import io
+import contextlib
+from vartalap.logger import get_recent_logs, get_recent_llm_logs, get_messages_sent_today_count
+
+
+class TUIStream(io.TextIOBase):
+    """Redirects standard print output live into Textual RichLog widget."""
+
+    def __init__(self, log_widget: RichLog):
+        self.log_widget = log_widget
+        self.buffer = ""
+
+    def write(self, s: str) -> int:
+        self.buffer += s
+        while "\n" in self.buffer:
+            line, self.buffer = self.buffer.split("\n", 1)
+            line_clean = line.strip()
+            if line_clean:
+                self.log_widget.write(line_clean)
+        return len(s)
+
+    def flush(self):
+        if self.buffer.strip():
+            self.log_widget.write(self.buffer.strip())
+            self.buffer = ""
+
+
     async def _async_agent_run(self, username: str, instruction: str, dry_run: bool, mode: str) -> None:
         log = self.query_one("#rich-log", RichLog)
         json_log = self.query_one("#json-log", RichLog)
         pill = self.query_one("#pill-status", Label)
 
+        stream = TUIStream(log)
+
         try:
-            result = await run_agent(
-                username=username,
-                instruction=instruction,
-                dry_run=dry_run,
-                mode=mode
-            )
+            with contextlib.redirect_stdout(stream), contextlib.redirect_stderr(stream):
+                result = await run_agent(
+                    username=username,
+                    instruction=instruction,
+                    dry_run=dry_run,
+                    mode=mode
+                )
             status = result.get("status")
             final_action = result.get("final_action", "N/A")
 
@@ -336,13 +366,23 @@ class VartalapTUI(App):
     def load_audit_logs(self) -> None:
         table = self.query_one("#dt-audit", DataTable)
         table.clear()
-        logs = get_recent_logs(limit=40)
+        
+        # Load Action Logs
+        logs = get_recent_logs(limit=30)
         for row in logs:
             ts = row.get("timestamp", "")[:19].replace("T", " ")
             user = row.get("thread_username", "")
             action = row.get("action", "")
             dry_run = "TRUE" if row.get("dry_run") else "FALSE"
             table.add_row(ts, user, action, dry_run, row.get("details", "")[:50])
+
+        # Load LLM Logs
+        llm_logs = get_recent_llm_logs(limit=20)
+        for row in llm_logs:
+            ts = row.get("timestamp", "")[:19].replace("T", " ")
+            backend = row.get("backend", "")
+            resp_preview = row.get("response", "").replace("\n", " ")[:40]
+            table.add_row(ts, "LLM-CALL", backend, "N/A", f"Resp: {resp_preview}")
 
 
 def main():

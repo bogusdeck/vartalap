@@ -94,6 +94,21 @@ def get_recent_logs(limit: int = 100, username: Optional[str] = None) -> List[Di
         return [dict(row) for row in rows]
 
 
+def get_recent_llm_logs(limit: int = 50) -> List[Dict[str, Any]]:
+    """Retrieve recent LLM call logs."""
+    init_db()
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute(
+            """SELECT timestamp, backend, prompt, response, duration_ms 
+               FROM llm_logs ORDER BY id DESC LIMIT ?""",
+            (limit,)
+        )
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+
 def get_messages_sent_today_count() -> int:
     """Count non-dry-run reply actions sent today (UTC)."""
     init_db()
