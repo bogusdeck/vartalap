@@ -150,15 +150,21 @@ class VartalapTUI(App):
     }
 
     TabbedContent {
-        height: 100%;
+        height: 1fr;
+    }
+
+    ContentSwitcher {
+        height: 1fr;
     }
 
     TabPane {
+        height: 1fr;
         padding: 0;
     }
 
     RichLog {
-        height: 100%;
+        height: 1fr;
+        min-height: 15;
         background: #0b0f19;
         color: #38bdf8;
         border: none;
@@ -255,13 +261,13 @@ class VartalapTUI(App):
 
                 with TabbedContent(initial="tab-log"):
                     with TabPane("Console Stream", id="tab-log"):
-                        yield RichLog(id="rich-log", wrap=True, highlight=True, markup=True)
+                        yield RichLog(id="rich-log", wrap=True, highlight=True, markup=False)
 
                     with TabPane("Audit Database", id="tab-audit"):
                         yield DataTable(id="dt-audit")
 
                     with TabPane("Raw Response JSON", id="tab-json"):
-                        yield RichLog(id="json-log", wrap=True, highlight=True, markup=True)
+                        yield RichLog(id="json-log", wrap=True, highlight=True, markup=False)
 
         yield Footer()
 
@@ -327,15 +333,7 @@ class VartalapTUI(App):
         pill = self.query_one("#pill-status", Label)
 
         def log_to_tui(msg: str):
-            formatted_msg = (
-                msg.replace("[AGENT]", "[bold green][AGENT][/bold green]")
-                   .replace("[PERCEPTION]", "[bold cyan][PERCEPTION][/bold cyan]")
-                   .replace("[EXECUTOR]", "[bold magenta][EXECUTOR][/bold magenta]")
-                   .replace("[LLM]", "[bold yellow][LLM][/bold yellow]")
-                   .replace("[FAST-API]", "[bold teal][FAST-API][/bold teal]")
-                   .replace("[SAFETY]", "[bold red][SAFETY][/bold red]")
-            )
-            log.write(formatted_msg)
+            log.write(msg)
 
         stream = TUIStream(log)
 
