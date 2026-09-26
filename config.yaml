@@ -15,7 +15,7 @@ llm:
 
 reddit:
   storage_state_path: "./storage_state.json"
-  inbox_url: "https://www.reddit.com/message/messages"
+  inbox_url: "https://chat.reddit.com"
   chat_url: "https://chat.reddit.com"
 
 agent:

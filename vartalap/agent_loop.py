@@ -53,7 +53,10 @@ async def run_agent(
     if exec_mode == "terminal_browser":
         try:
             from vartalap.terminal_browser import run_terminal_browser_agent
-            target_url = f"{settings.reddit.inbox_url.rstrip('/')}/messages/{username}"
+            if "chat.reddit.com" in settings.reddit.inbox_url:
+                target_url = f"https://chat.reddit.com/user/{username}"
+            else:
+                target_url = f"{settings.reddit.inbox_url.rstrip('/')}/messages/{username}"
             tb_result = await run_terminal_browser_agent(url=target_url)
             return {
                 "username": username,

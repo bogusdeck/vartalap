@@ -7,18 +7,17 @@ from playwright.async_api import Page, TimeoutError as PlaywrightTimeoutError
 from vartalap.settings import get_settings
 
 
-# Placeholders for Reddit Selectors - update these if Reddit UI updates
-# Legacy Reddit Inbox Selectors
-INBOX_THREAD_SELECTOR = "div.thing.message, div.message-container, div[data-testid='inbox-thread']"
-UNREAD_BADGE_SELECTOR = ".unread, [data-testid='unread-badge']"
-THREAD_USER_SELECTOR = "a.author, [data-testid='thread-user'], .sender"
-THREAD_SNIPPET_SELECTOR = "div.entry div.md, [data-testid='thread-snippet']"
+# Selectors for Reddit Chat & Messages
+INBOX_THREAD_SELECTOR = "div[data-testid='chat-channel-item'], a[href*='/chat/'], div.thing.message, div.message-container, div[data-testid='inbox-thread']"
+UNREAD_BADGE_SELECTOR = "[data-testid='unread-badge'], .unread, span.unread"
+THREAD_USER_SELECTOR = "[data-testid='chat-channel-name'], a.author, [data-testid='thread-user'], .sender"
+THREAD_SNIPPET_SELECTOR = "[data-testid='chat-snippet'], div.entry div.md, [data-testid='thread-snippet']"
 
-# Thread Detail Selectors
-MESSAGE_ITEM_SELECTOR = "div.thing.message, div[data-testid='message-bubble'], div.message-item, [role='listitem']"
-MESSAGE_SENDER_SELECTOR = "a.author, span.sender, [data-testid='message-sender']"
-MESSAGE_BODY_SELECTOR = "div.md, p.message-text, [data-testid='message-body']"
-MESSAGE_TIME_SELECTOR = "time, span.timestamp, [data-testid='message-time']"
+# Thread Message Detail Selectors
+MESSAGE_ITEM_SELECTOR = "div[data-testid='chat-message'], [role='listitem'], div.thing.message, div[data-testid='message-bubble'], div.message-item"
+MESSAGE_SENDER_SELECTOR = "[data-testid='message-sender'], a.author, span.sender"
+MESSAGE_BODY_SELECTOR = "[data-testid='message-body'], p.message-text, div.md"
+MESSAGE_TIME_SELECTOR = "[data-testid='message-time'], time, span.timestamp"
 
 
 async def list_conversation_threads(page: Page) -> List[Dict[str, Any]]:
@@ -46,7 +45,6 @@ async def list_conversation_threads(page: Page) -> List[Dict[str, Any]]:
     
     if not thread_elements:
         # Fallback: check alternative links or accessibility tree elements
-        # TODO: Update INBOX_THREAD_SELECTOR based on live Reddit DOM
         print("[PERCEPTION] No threads matched standard selectors. Searching for user links in message container...")
         alt_elements = await page.query_selector_all("div.message, div.thing")
         thread_elements = alt_elements
@@ -88,8 +86,12 @@ async def get_thread_messages(page: Page, username: str) -> List[Dict[str, Any]]
     """
     settings = get_settings()
 
-    # Direct URL navigation or opening thread
-    thread_url = f"{settings.reddit.inbox_url.rstrip('/')}/messages/{username}"
+    # Direct Reddit Chat URL or Legacy Message URL
+    if "chat.reddit.com" in settings.reddit.inbox_url:
+        thread_url = f"https://chat.reddit.com/user/{username}"
+    else:
+        thread_url = f"{settings.reddit.inbox_url.rstrip('/')}/messages/{username}"
+
     print(f"[PERCEPTION] Opening thread for user '{username}' via URL: {thread_url}")
 
     try:

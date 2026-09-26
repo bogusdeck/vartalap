@@ -38,7 +38,7 @@ class LLMConfig(BaseModel):
 
 class RedditConfig(BaseModel):
     storage_state_path: str = "./storage_state.json"
-    inbox_url: str = "https://www.reddit.com/message/messages"
+    inbox_url: str = "https://chat.reddit.com"
     chat_url: str = "https://chat.reddit.com"
     headless: bool = False
 

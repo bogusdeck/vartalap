@@ -4,7 +4,7 @@ import sys
 import subprocess
 
 
-def launch_split_session(target_url: str = "https://www.reddit.com/message/messages"):
+def launch_split_session(target_url: str = "https://chat.reddit.com"):
     """Launches side-by-side split panels with TUI on left and terminal-browser on right."""
     
     tb_bin = shutil.which("terminal-browser")

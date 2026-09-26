@@ -7,10 +7,10 @@ from vartalap.logger import log_action
 from vartalap.settings import get_settings
 
 
-# Placeholders for Reddit Selectors - update these if Reddit UI updates
-THREAD_ITEM_TEMPLATE = "a[href*='{username}'], div:has-text('{username}')"
-COMPOSER_SELECTOR = "textarea[name='body'], textarea.reply-textarea, [contenteditable='true'], [data-testid='message-composer']"
-SEND_BUTTON_SELECTOR = "button[type='submit']:has-text('send'), button.reply-button, button:has-text('Send'), [data-testid='send-button']"
+# Selectors for Reddit Chat & Messages
+THREAD_ITEM_TEMPLATE = "a[href*='{username}'], div:has-text('{username}'), [data-testid='chat-channel-item']:has-text('{username}')"
+COMPOSER_SELECTOR = "[data-testid='chat-composer-textarea'], textarea[name='body'], textarea.reply-textarea, [contenteditable='true'], [data-testid='message-composer'], textarea"
+SEND_BUTTON_SELECTOR = "[data-testid='chat-send-button'], button[type='submit']:has-text('send'), button.reply-button, button:has-text('Send'), [data-testid='send-button']"
 
 
 async def random_human_delay(min_ms: int = 300, max_ms: int = 1200):
@@ -41,7 +41,6 @@ async def execute_action(
 
     if action_type == "open_thread":
         username = action_data.get("username", target_username)
-        # TODO: Update THREAD_ITEM_TEMPLATE if Reddit thread list structure changes
         selector = THREAD_ITEM_TEMPLATE.format(username=username)
         try:
             thread_elem = await page.query_selector(selector)
@@ -50,7 +49,10 @@ async def execute_action(
                 await random_human_delay()
             else:
                 # Direct navigation fallback
-                thread_url = f"{settings.reddit.inbox_url.rstrip('/')}/messages/{username}"
+                if "chat.reddit.com" in settings.reddit.inbox_url:
+                    thread_url = f"https://chat.reddit.com/user/{username}"
+                else:
+                    thread_url = f"{settings.reddit.inbox_url.rstrip('/')}/messages/{username}"
                 await page.goto(thread_url, wait_until="domcontentloaded")
             
             log_action(
