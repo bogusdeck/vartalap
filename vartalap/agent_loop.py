@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Callable
 
 from vartalap.settings import get_settings
 from vartalap.session import get_page
@@ -14,19 +14,22 @@ async def run_agent(
     username: str,
     instruction: str,
     dry_run: Optional[bool] = None,
-    mode: Optional[str] = None
+    mode: Optional[str] = None,
+    log_callback: Optional[Callable[[str], None]] = None
 ) -> Dict[str, Any]:
-    """Runs the perceive -> plan -> execute -> re-perceive loop for a target username.
-    
-    Supports modes:
-      - 'fast_browser': Playwright with resource blocking (3x speed boost)
-      - 'browser': Playwright standard mode
-      - 'direct_api': Direct HTTP REST API (<300ms sub-second speed)
-    """
+    """Runs the perceive -> plan -> execute -> re-perceive loop for a target username."""
     settings = get_settings()
     max_steps = settings.agent.max_steps_per_conversation
     max_daily_messages = settings.agent.max_messages_per_day
     exec_mode = mode or settings.agent.mode
+
+    def emit_log(msg: str):
+        print(msg)
+        if log_callback:
+            try:
+                log_callback(msg)
+            except Exception:
+                pass
 
     # Determine effective dry_run
     is_dry_run = settings.agent.dry_run if dry_run is None else dry_run
@@ -34,7 +37,7 @@ async def run_agent(
     # Check daily message safety limit
     sent_today = get_messages_sent_today_count()
     if not is_dry_run and sent_today >= max_daily_messages:
-        print(f"[SAFETY] Daily message cap reached ({sent_today}/{max_daily_messages}). Forcing dry_run=True.")
+        emit_log(f"[SAFETY] Daily message cap reached ({sent_today}/{max_daily_messages}). Forcing dry_run=True.")
         is_dry_run = True
         log_action(
             thread_username=username,
@@ -47,7 +50,7 @@ async def run_agent(
     planner = Planner()
     history_log: List[Dict[str, Any]] = []
 
-    print(f"[AGENT] Starting conversation run for u/{username} (mode={exec_mode}, max_steps={max_steps}, dry_run={is_dry_run})")
+    emit_log(f"[AGENT] Starting conversation run for u/{username} (mode={exec_mode}, max_steps={max_steps}, dry_run={is_dry_run})")
 
     # --- TERMINAL BROWSER MODE (zenbu-labs/terminal-browser) ---
     if exec_mode == "terminal_browser":
@@ -68,7 +71,7 @@ async def run_agent(
             }
         except Exception as e:
             err_msg = f"Terminal browser mode failed: {e}"
-            print(f"[AGENT] {err_msg}")
+            emit_log(f"[AGENT] {err_msg}")
             return {"username": username, "status": "error", "error": err_msg}
 
     # --- DIRECT HTTP REST API MODE (<300ms) ---
@@ -110,7 +113,7 @@ async def run_agent(
             }
         except Exception as e:
             err_msg = f"Direct API mode execution failed: {e}"
-            print(f"[AGENT] {err_msg}")
+            emit_log(f"[AGENT] {err_msg}")
             return {"username": username, "status": "error", "error": err_msg}
 
     # --- PLAYWRIGHT BROWSER MODES (fast_browser / browser) ---
@@ -118,13 +121,14 @@ async def run_agent(
 
     async with get_page(fast_mode=use_fast_mode) as page:
         for step in range(1, max_steps + 1):
-            print(f"\n[AGENT] --- STEP {step}/{max_steps} ({exec_mode}) ---")
+            emit_log(f"[AGENT] --- STEP {step}/{max_steps} ({exec_mode}) ---")
 
             # 1. PERCEIVE
             try:
                 message_history = await get_thread_messages(page, username)
+                emit_log(f"[PERCEPTION] Found {len(message_history)} messages for u/{username}")
             except Exception as e:
-                print(f"[AGENT] Perception failed on step {step}: {e}")
+                emit_log(f"[AGENT] Perception failed on step {step}: {e}")
                 message_history = []
 
             # 2. PLAN
@@ -136,7 +140,7 @@ async def run_agent(
                 )
             except Exception as e:
                 err_msg = f"Planning failed on step {step}: {e}"
-                print(f"[AGENT] {err_msg}")
+                emit_log(f"[AGENT] {err_msg}")
                 return {
                     "username": username,
                     "status": "error",
@@ -147,7 +151,7 @@ async def run_agent(
 
             action_type = action_decision.get("action")
             reasoning = action_decision.get("reason", "")
-            print(f"[AGENT] LLM Action Decision: {action_decision}")
+            emit_log(f"[AGENT] LLM Action Decision: {action_decision}")
 
             history_log.append({
                 "step": step,
@@ -163,11 +167,12 @@ async def run_agent(
                 dry_run=is_dry_run
             )
 
+            emit_log(f"[EXECUTOR] Action '{action_type}' result: {exec_result}")
             history_log[-1]["execution_result"] = exec_result
 
             # 4. EVALUATE TERMINATION
             if action_type in ("done", "skip") or not exec_result.get("success", False):
-                print(f"[AGENT] Conversation run ending at step {step} on action '{action_type}'.")
+                emit_log(f"[AGENT] Conversation run ending at step {step} on action '{action_type}'.")
                 return {
                     "username": username,
                     "status": "completed" if exec_result.get("success") else "failed",
@@ -180,7 +185,7 @@ async def run_agent(
                 }
 
         # Capped at max_steps hard stop
-        print(f"[AGENT] Hard stop reached max_steps ({max_steps}) for u/{username}.")
+        emit_log(f"[AGENT] Hard stop reached max_steps ({max_steps}) for u/{username}.")
         log_action(
             thread_username=username,
             action="max_steps_stop",

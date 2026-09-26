@@ -326,6 +326,17 @@ class VartalapTUI(App):
         json_log = self.query_one("#json-log", RichLog)
         pill = self.query_one("#pill-status", Label)
 
+        def log_to_tui(msg: str):
+            formatted_msg = (
+                msg.replace("[AGENT]", "[bold green][AGENT][/bold green]")
+                   .replace("[PERCEPTION]", "[bold cyan][PERCEPTION][/bold cyan]")
+                   .replace("[EXECUTOR]", "[bold magenta][EXECUTOR][/bold magenta]")
+                   .replace("[LLM]", "[bold yellow][LLM][/bold yellow]")
+                   .replace("[FAST-API]", "[bold teal][FAST-API][/bold teal]")
+                   .replace("[SAFETY]", "[bold red][SAFETY][/bold red]")
+            )
+            log.write(formatted_msg)
+
         stream = TUIStream(log)
 
         try:
@@ -334,7 +345,8 @@ class VartalapTUI(App):
                     username=username,
                     instruction=instruction,
                     dry_run=dry_run,
-                    mode=mode
+                    mode=mode,
+                    log_callback=log_to_tui
                 )
             status = result.get("status")
             final_action = result.get("final_action", "N/A")
