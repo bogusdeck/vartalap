@@ -1,5 +1,7 @@
+import io
 import json
 import asyncio
+import contextlib
 from typing import Optional, List, Dict, Any
 
 from textual.app import App, ComposeResult
@@ -15,8 +17,30 @@ from vartalap.agent_loop import run_agent
 from vartalap.logger import get_recent_logs, get_recent_llm_logs, get_messages_sent_today_count
 
 
+class TUIStream(io.TextIOBase):
+    """Redirects standard print output live into Textual RichLog widget."""
+
+    def __init__(self, log_widget: RichLog):
+        self.log_widget = log_widget
+        self.buffer = ""
+
+    def write(self, s: str) -> int:
+        self.buffer += s
+        while "\n" in self.buffer:
+            line, self.buffer = self.buffer.split("\n", 1)
+            line_clean = line.strip()
+            if line_clean:
+                self.log_widget.write(line_clean)
+        return len(s)
+
+    def flush(self):
+        if self.buffer.strip():
+            self.log_widget.write(self.buffer.strip())
+            self.buffer = ""
+
+
 class VartalapTUI(App):
-    """Clean 2-Section Textual TUI with TextArea wrapping and proper Select dropdowns."""
+    """Clean 2-Section Textual TUI (Agent Setup on Left | Execution Response on Right)."""
 
     TITLE = "Vartalap"
     SUB_TITLE = "0.1.0"
@@ -255,7 +279,7 @@ class VartalapTUI(App):
 
     def action_cycle_mode(self) -> None:
         select = self.query_one("#sel-mode", Select)
-        modes = ["fast_browser", "direct_api", "browser"]
+        modes = ["fast_browser", "direct_api", "terminal_browser", "browser"]
         curr_idx = modes.index(select.value) if select.value in modes else 0
         next_mode = modes[(curr_idx + 1) % len(modes)]
         select.value = next_mode
@@ -296,33 +320,6 @@ class VartalapTUI(App):
 
         self.notify(f"Executing agent for u/{username}...", title="Execution Started")
         self.run_worker(self._async_agent_run(username, instruction, dry_run, mode))
-
-import io
-import contextlib
-from vartalap.logger import get_recent_logs, get_recent_llm_logs, get_messages_sent_today_count
-
-
-class TUIStream(io.TextIOBase):
-    """Redirects standard print output live into Textual RichLog widget."""
-
-    def __init__(self, log_widget: RichLog):
-        self.log_widget = log_widget
-        self.buffer = ""
-
-    def write(self, s: str) -> int:
-        self.buffer += s
-        while "\n" in self.buffer:
-            line, self.buffer = self.buffer.split("\n", 1)
-            line_clean = line.strip()
-            if line_clean:
-                self.log_widget.write(line_clean)
-        return len(s)
-
-    def flush(self):
-        if self.buffer.strip():
-            self.log_widget.write(self.buffer.strip())
-            self.buffer = ""
-
 
     async def _async_agent_run(self, username: str, instruction: str, dry_run: bool, mode: str) -> None:
         log = self.query_one("#rich-log", RichLog)
