@@ -242,7 +242,7 @@ class VartalapTUI(App):
                 yield Label("Exec Mode:", classes="field-label")
                 yield Select(
                     options=self.MODE_OPTIONS,
-                    value="fast_browser",
+                    value="terminal_browser",
                     allow_blank=False,
                     id="sel-mode"
                 )

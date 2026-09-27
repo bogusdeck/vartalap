@@ -44,7 +44,7 @@ class RedditConfig(BaseModel):
 
 
 class AgentConfig(BaseModel):
-    mode: str = "fast_browser"  # fast_browser | direct_api | browser
+    mode: str = "terminal_browser"  # terminal_browser | fast_browser | direct_api | browser
     watchlist: List[str] = Field(default_factory=list)
     max_steps_per_conversation: int = 6
     max_messages_per_day: int = 20

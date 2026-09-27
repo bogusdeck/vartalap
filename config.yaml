@@ -19,7 +19,7 @@ reddit:
   chat_url: "https://chat.reddit.com"
 
 agent:
-  mode: fast_browser          # Options: fast_browser | direct_api | browser
+  mode: terminal_browser       # Options: terminal_browser | fast_browser | direct_api | browser
   watchlist: []              # empty = handle any unread DM
   max_steps_per_conversation: 6
   max_messages_per_day: 20
